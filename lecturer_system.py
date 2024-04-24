@@ -1,7 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-import sqlite3
+from db_operations.read_mod import Read
+from db_operations.delete_mod import Delete
+from db_operations.update_mod import Update
+from db_operations.create_mod import Create
 
 
 # Learner management system's class, widgets and functions
@@ -10,7 +13,7 @@ class LecturerManagementWindow:
         self.master = master        # tkinter root
         self.db = db                # Stores the Database class instance
         self.master.title("Lecturer Management Window")
-        self.master.geometry("1350x600")
+        self.master.geometry("1350x550")
 
         # Configuring the column span of the window
         master.grid_columnconfigure(0, weight=1)
@@ -154,15 +157,7 @@ class LecturerManagementWindow:
 
     # Function to fetch data and populate treeview
     def populate_treeview(self):
-        self.search_item.set("")
-        # Clear existing data in the Treeview
-        self.lecturer_treeview.delete(*self.lecturer_treeview.get_children())
-
-        if self.db.fetch_data("lecturers"):
-            for row in self.db.fetch_data("lecturers"):
-                self.lecturer_treeview.insert("", "end", values=row)
-        else:
-            print("Could not fetch data.")
+        Read(self.db).populate_treeview(self.search_item, self.lecturer_treeview, "lecturers")
 
     # Function to add records to database
     def add_data(self):
@@ -173,17 +168,7 @@ class LecturerManagementWindow:
         gender = self.gender_txtbox.get()
         age = self.age_txtbox.get()
 
-        if lecturer_id and firstname and lastname and email and gender and age:
-            try:
-                self.db.add_lecturer(lecturer_id, firstname, lastname, email, gender, age)
-
-                messagebox.showinfo("Success", "Form submitted successfully.")
-                self.clear_entry()
-            except sqlite3.IntegrityError:
-                messagebox.showerror("Error", f"Record for '{firstname} {lastname}' already exists.")
-        else:
-            messagebox.showerror("Error", "Please fill in all fields.")
-            print("Fill in all details")
+        Create(self.db).add_lecturer(lecturer_id, firstname, lastname, email, gender, age)
 
     # Function to get data from treeview and pass to form entries
     def on_select(self, event):
@@ -191,7 +176,7 @@ class LecturerManagementWindow:
 
         values = self.lecturer_treeview.item(selected_item, "values")
 
-        if values and len(values) >= 10:
+        if values and len(values) >= 5:
             self.lecturer_id.set(values[0])
             self.Firstname.set(values[1])
             self.Lastname.set(values[2])
@@ -212,17 +197,7 @@ class LecturerManagementWindow:
         lecturer = self.Firstname.get()
         surname = self.Lastname.get()
 
-        if lecturer_id and self.db.entry_exists("lecturers", lecturer_id):
-            result = messagebox.askquestion("Confirmation",
-                                            f"Are you sure you want to delete {lecturer} {surname}'s record?")
-
-            if result == 'yes':
-                self.db.delete_lecturer(lecturer_id)
-                messagebox.showinfo("Success", "Record deleted successfully.")
-            else:
-                pass
-        else:
-            messagebox.showerror("Error", "Enter an existing identification number")
+        Delete(self.db).remove_lecturer(lecturer_id, lecturer, surname)
 
     # Function to update record in database
     def update_data(self):
@@ -233,33 +208,11 @@ class LecturerManagementWindow:
         gender = self.gender_txtbox.get()
         age = self.age_txtbox.get()
 
-        if self.db.entry_exists("lecturers", lecturer_id):
-            result = messagebox.askquestion("Confirmation", f"Are you sure you want to update the record with ID '{lecturer_id}'?")
-
-            if result == 'yes' and lecturer_id and firstname and lastname and email and gender and age:
-                self.db.update_lecturer(firstname, lastname, email, gender, age, lecturer_id)
-
-                self.clear_entry()
-                messagebox.showinfo("Success", "Record updated successfully.")
-            elif result == 'no':
-                pass
-            else:
-                messagebox.showerror("Error", "Please fill in all fields.")
-        else:
-            messagebox.showerror("Error", "Enter an existing lecturer id")
+        Update(self.db).update_lecturer(lecturer_id, firstname, lastname, email, gender, age)
 
     # Function for search button
     def search_entry(self):
-        search_item = self.search_item.get()
-
-        for record in self.lecturer_treeview.get_children():
-            self.lecturer_treeview.delete(record)
-
-        if self.db.search("lecturers", search_item):
-            for row in self.db.search("lecturers", search_item):
-                self.lecturer_treeview.insert("", "end", values=row)
-        else:
-            messagebox.showerror("Error", f"'{search_item}' not found.")
+        Read(self.db).search_entry(self.search_item, self.lecturer_treeview, "lecturers")
 
     # Function to exit window
     def exit_window(self):

@@ -59,7 +59,7 @@ class Database:
 
     # Dynamic SELECT statement for fetching table data
     def fetch_data(self, table):
-        query = (f"SELECT * FROM {table}")
+        query = f"SELECT * FROM {table}"
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
         return rows

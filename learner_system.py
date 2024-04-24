@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
+from db_operations.read_mod import Read
+from db_operations.delete_mod import Delete
+from db_operations.update_mod import Update
+from db_operations.create_mod import Create
 
 # Learner management system's class, widgets and functions
 class LearnerManagementWindow:
@@ -217,14 +221,7 @@ class LearnerManagementWindow:
 
     # Function to fetch data and populate treeview
     def populate_treeview(self):
-        self.search_item.set("")
-
-        self.student_treeview.delete(*self.student_treeview.get_children())
-        if self.db.fetch_data("students"):
-            for row in self.db.fetch_data("students"):
-                self.student_treeview.insert("", "end", values=row)
-        else:
-            print("Could not fetch data")
+        Read(self.db).populate_treeview(self.search_item, self.student_treeview, "students")
 
     # Function to get data from treeview and pass to form entries
     def on_select(self, event=None):
@@ -271,33 +268,12 @@ class LearnerManagementWindow:
         mode = self.courseMode_Combobox.get()
         course = self.course_combobox.get()
 
-        if student_nr and firstname and lastname and email and gender and age and address and contact and mode and course:
-            try:
-                self.db.add_student(student_nr, firstname, lastname, email, gender, age, address, contact, mode, course)
-
-                self.clear_entry()
-                messagebox.showinfo("Success", "Record added successfully.")
-
-            except sqlite3.IntegrityError:      # Built-in sqlite3 function to catch UNIQUE constraint violations
-                messagebox.showerror("Error", f"Record for '{student_nr}' already exists.")
-        else:
-            messagebox.showerror("Error", "Please fill in all fields.")
+        Create(self.db).add_student(student_nr, firstname, lastname, email, gender, age, address, contact, mode, course)
 
     # Function to delete record from database
     def delete_data(self):
         student_nr = self.St_nr.get()
-
-        if student_nr and self.db.entry_exists("students", student_nr):
-            result = messagebox.askquestion("Confirmation",
-                                            f"Are you sure you want to delete student record with ID '{student_nr}'?")
-
-            if result == 'yes':
-                self.db.delete_student(student_nr)
-                messagebox.showinfo("Success", "Record deleted successfully.")
-            else:
-                pass
-        else:
-            messagebox.showerror("Error", "Enter an existing student number.")
+        Delete(self.db).remove_student(student_nr)
 
     # Function to update record in database
     def update_data(self):
@@ -312,35 +288,11 @@ class LearnerManagementWindow:
         mode = self.courseMode_Combobox.get()
         course = self.course_combobox.get()
 
-        if self.db.entry_exists("students", student_nr):
-            result = messagebox.askquestion("Confirmation", f"Are you sure you want update record with student number '{student_nr}'?")
-
-            if result == 'yes' and student_nr and firstname and lastname and email and gender and age and address and contact and mode and course:
-                self.db.update_student(firstname, lastname, email, gender, age, address, contact, mode, course,
-                                       student_nr)
-
-                self.clear_entry()
-                messagebox.showinfo("Success", "Record updated successfully.")
-            elif result == 'no':
-                pass
-            else:
-                messagebox.showerror("Error", "Please fill in all fields.")
-        else:
-            messagebox.showerror("Error", "Enter an existing student number.")
+        Update(self.db).update_student(student_nr, firstname, lastname, email, gender, age, address, contact, mode, course)
 
     # Function for search button
     def search_entry(self):
-        search_item = self.search_item.get()
-
-        # Removes treeview data to show searched results
-        for record in self.student_treeview.get_children():
-            self.student_treeview.delete(record)
-
-        if self.db.search("students", search_item):
-            for row in self.db.search("students", search_item):
-                self.student_treeview.insert("", "end", values=row)
-        else:
-            messagebox.showerror("Error", f"'{search_item}' not found.")
+        Read(self.db).search_entry(self.search_item, self.student_treeview, "students")
 
     # Function to exit window
     def exit_window(self):
